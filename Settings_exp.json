@@ -1,0 +1,19 @@
+{
+    "filename": "SiM.json",
+    "specifics": false,
+    "random_superList": true,
+    "numLists": 5,
+    "superList": ["harvard.csv"],
+    "consider": {
+        "harvard.csv": [0, 3],
+        "capev": []
+    },
+    "randomize_sentences": true,
+    "questions": ["Prolific ID / Participant ID", "Age",
+        "Do you have any history of a hearing, speech, language, or neurological disorder?",
+        "Did you grow up speaking North American English?",
+        "Please enter speech conditions"
+    ],
+    "channels": 2,
+    "recordingDir": null
+}

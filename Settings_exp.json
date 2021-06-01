@@ -2,7 +2,7 @@
     "filename": "SiM.json",
     "specifics": false,
     "random_superList": true,
-    "numLists": 5,
+    "numLists": 1,
     "superList": ["harvard.csv"],
     "consider": {
         "harvard.csv": [0, 3],
@@ -15,5 +15,6 @@
         "Please enter speech conditions"
     ],
     "channels": 2,
-    "recordingDir": null
+    "recordingDir": null,
+    "fullScreen": false
 }

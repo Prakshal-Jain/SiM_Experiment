@@ -1,4 +1,6 @@
 import json
+import csv
+import time
 import random
 from psychopy import visual, core, event, gui
 import os
@@ -40,7 +42,6 @@ def showTextBox(questions):
         return answers
     else:
         return answers
-
 
 settingJSON = open('Settings_exp.json')
 settings = json.load(settingJSON)
@@ -113,11 +114,23 @@ for innerList in sent_lis:
         flat_list += sent
 # ================= Finish Sentence Pre-processing ================= #
 
+outArray = []  # Array to store output CSV responses
+fields = settings["questions"]
+fields += ["Response Time", "Trial Type", "Trial Index", "Stimulus (Sentence)", "Sentence Type", "List Number", "Sentence Number", "Audio File Path", "Retries"]
+outArray.append(fields)
+
+# ============ Function to populate row of outArray ============ #
+def populateOutArray(rt, trialType, TrialIdx, Stimulus, sen_type, list_number, sentence_number, audPath, retries):
+    innerArr = [answers[0], answers[1], answers[2], answers[3], answers[4], rt, trialType, TrialIdx, Stimulus, sen_type, list_number, sentence_number, audPath, retries]
+    outArray.append(innerArr)
+# ============ End Populate Function ============ #
+
 trackIdx = 0
 maxIdx = len(flat_list)
 
-win = visual.Window(color="white", fullscr=False)
+win = visual.Window(color="white", fullscr=settings["fullScreen"])
 
+consentStim = []
 visual.ImageStim(win, image='./ub.png', size=(250, 31.7), pos=(0, 100), units="pix").draw()
 msg0 = visual.TextStim(win, text="SiM Experiment", pos=(0, 0), color='#666666', height = 50, units='pix')
 msg0.draw()
@@ -125,11 +138,14 @@ msg01 = visual.TextStim(win, text="\n\nPress any key to Continue.\nPress 'q' to 
                                units='pix')
 msg01.draw()
 win.flip()
-imgKey = event.waitKeys()
-
-if("q" in imgKey):
+reaction_time_clock = core.Clock()
+imgKey = event.waitKeys(timeStamped=reaction_time_clock)
+populateOutArray(str(reaction_time_clock.getTime()), "Experiment Consent", "0", "Consent Stimuli", "NULL", "NULL", "NULL", "NULL", "NULL")
+if("q" in imgKey[0]):
     trackIdx = maxIdx
 
+trial = 1
+retries = [[], [], []]
 # Start showing sentence stimuli.
 while (trackIdx < maxIdx):
     parser = argparse.ArgumentParser(add_help=False)
@@ -147,9 +163,9 @@ while (trackIdx < maxIdx):
     msg2 = visual.TextStim(win, text="Press 'Space' to start recording.", pos=(0, -100), color='#000000', height=30, units='pix')
     msg2.draw()
     win.flip()
-    key1 = event.waitKeys()
-
-    if('space' in key1):
+    reaction_time_clock_1 = core.Clock()
+    key1 = event.waitKeys(timeStamped=reaction_time_clock_1)
+    if('space' in key1[0]):
         msg = visual.TextStim(win, text="Sentence " + str(trackIdx + 1) + " of " + str(maxIdx), color='#000000',
                               pos=(0, 100), height=30, units='pix')
         msg.draw()
@@ -162,6 +178,7 @@ while (trackIdx < maxIdx):
         win.flip()
 
         # =========== Audio Recording ============= #
+        start = time.process_time()
         with sf.SoundFile(filename, mode='x', samplerate=44100,
                           channels=channels, subtype=None) as file:
             with sd.InputStream(samplerate=44100, device=None,
@@ -169,10 +186,10 @@ while (trackIdx < maxIdx):
                 while True:
                     file.write(q.get())
                     if keyboard.is_pressed("space"):
-                        print('\nRecording finished: ' + repr(filename))
                         q.queue.clear()
                         break
 
+        recording_time = time.process_time() - start
         msg = visual.TextStim(win, text="Sentence " + str(trackIdx + 1) + " of " + str(maxIdx), color='#000000',
                               pos=(0, 100), height=30, units='pix')
         msg.draw()
@@ -182,16 +199,44 @@ while (trackIdx < maxIdx):
                                units='pix')
         msg2.draw()
         win.flip()
-        keys = event.waitKeys()
-        if ('space' in keys):
-            print("Clicked Space to proceed after recording")
+        reaction_time_clock_2 = core.Clock()
+        keys = event.waitKeys(timeStamped=reaction_time_clock_2)
+
+        retries[0].append(str(reaction_time_clock_1.getTime()))
+        retries[1].append(str(recording_time))
+        retries[2].append(str(reaction_time_clock_2.getTime()))
+        if ('space' in keys[0]):
+            populateOutArray(",".join(retries[0]), "Sentence Preview", str(trial),
+                             flat_list[trackIdx]["sentence\n"],
+                             flat_list[trackIdx]["ID"], str(flat_list[trackIdx]["list_number"]),
+                             str(flat_list[trackIdx]["sen_number"]),
+                             filename, str(len(retries[0])))
+            populateOutArray(",".join(retries[1]), "Audio Recording", str(trial+1),
+                             flat_list[trackIdx]["sentence\n"],
+                             flat_list[trackIdx]["ID"], str(flat_list[trackIdx]["list_number"]),
+                             str(flat_list[trackIdx]["sen_number"]),
+                             filename, str(len(retries[0])))
+            populateOutArray(",".join(retries[2]), "After Recording", str(trial + 2),
+                             flat_list[trackIdx]["sentence\n"],
+                             flat_list[trackIdx]["ID"], str(flat_list[trackIdx]["list_number"]),
+                             str(flat_list[trackIdx]["sen_number"]),
+                             filename, str(len(retries[0])))
+
+            retries = [[], [], []]
+            trial += 2
             trackIdx += 1
             continue
-        elif('r' in keys):
+        elif('r' in keys[0]):
             continue
 
-        elif ('q' in keys):
+        elif ('q' in keys[0]):
             win.close()
 
-    elif('q' in key1):
+    elif('q' in key1[0]):
         win.close()
+
+
+with open((saveLocation+"/"+answers[0]+'.csv'), mode='w') as out_file:
+    for innerL in outArray:
+        CSVwriter = csv.writer(out_file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+        CSVwriter.writerow(innerL)

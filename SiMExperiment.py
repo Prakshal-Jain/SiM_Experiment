@@ -4,6 +4,7 @@ import time
 import random
 from psychopy import visual, core, event, gui
 import os
+from datetime import date
 
 # =========== Recording Libraries ============= #
 import keyboard
@@ -16,6 +17,8 @@ import soundfile as sf
 import numpy  # Make sure NumPy is loaded before it is used in the callback
 assert numpy  # avoid "imported but unused" message (W0611)
 # =========== End Recording Libraries ============= #
+
+today = date.today()
 
 def callback(indata, frames, time, status):
     """This is called (from a separate thread) for each audio block."""
@@ -58,7 +61,7 @@ if(settings["recordingDir"] == None):
 else:
     path = settings["recordingDir"]
 
-saveLocation = path + "/" + answers[0]
+saveLocation = path + "/" + answers[0] + "_" + today.strftime("%b-%d-%Y")
 os.mkdir(saveLocation)
 
 # ================= Sentence Pre-processing ================= #
